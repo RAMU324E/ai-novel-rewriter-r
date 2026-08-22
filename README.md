@@ -18,13 +18,9 @@
 
 ## 下载与安装
 
-请前往仓库的 **Releases** 页面下载最新 APK。
+**[直接下载 AI Novel Rewriter R v1.11.3 APK](https://github.com/RAMU324E/ai-novel-rewriter-r/releases/download/v1.11.3/AI-Novel-Rewriter-R-v1.11.3-debug.apk)**
 
-当前公开包为 Debug 签名测试版：
-
-```text
-AI-Novel-Rewriter-R-v1.11.3-debug.apk
-```
+当前公开包使用 Debug 签名，仅供测试和直接分发。历史版本及发布说明可在 [Releases](https://github.com/RAMU324E/ai-novel-rewriter-r/releases) 页面查看。
 
 要求 Android 7.0（API 24）或更高版本。升级时请直接覆盖安装，不要先卸载旧版，否则手机本地存档和 API 配置可能被清除。
 
