@@ -23,7 +23,7 @@
 当前公开包为 Debug 签名测试版：
 
 ```text
-鲸鱼娘改写中-v1.11.3-stream-debug.apk
+AI-Novel-Rewriter-R-v1.11.3-debug.apk
 ```
 
 要求 Android 7.0（API 24）或更高版本。升级时请直接覆盖安装，不要先卸载旧版，否则手机本地存档和 API 配置可能被清除。
