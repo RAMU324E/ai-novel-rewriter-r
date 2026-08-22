@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Local Android configuration and generated output
+android/local.properties
+android/.gradle/
+android/build/
+android/app/build/
+android/capacitor-cordova-android-plugins/build/
+
+# IDE and operating-system files
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Packages, signing files and local secrets
+*.apk
+*.aab
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+.env
+.env.*
+
+# Local-only maintenance and build helpers
+build-apk.ps1
+构建APK.bat
+HANDOFF.md
+.zcode/
+.tmp-*

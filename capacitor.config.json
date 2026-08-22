@@ -1,0 +1,14 @@
+{
+  "appId": "com.limcode.novelaimobile",
+  "appName": "鲸鱼娘改写中",
+  "webDir": "www",
+  "server": {
+    "hostname": "localhost",
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}

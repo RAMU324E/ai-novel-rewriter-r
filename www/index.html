@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <title>鲸鱼娘改写中</title>
+  <link rel="stylesheet" href="styles.css?v=1122">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>鲸鱼娘改写中</h1>
+      <p>手机本地存档 · OpenAI 兼容接口 · 模型请求由手机直连</p>
+    </div>
+    <button id="theme-toggle" class="icon-button" type="button" title="切换主题">◐</button>
+  </header>
+
+  <main class="app-shell" data-mobile-view="write">
+    <aside class="sidebar">
+      <section class="panel-group books-panel">
+      <details class="card">
+        <summary><span class="step">1</span> 本机存档</summary>
+        <div class="card-body">
+          <label for="shared-save-select">手机中的书籍存档</label>
+          <div class="archive-select-row">
+            <select id="shared-save-select"><option value="">正在读取本机存档…</option></select>
+            <button id="refresh-shared-saves" type="button">刷新</button>
+          </div>
+          <div class="button-row">
+            <button id="open-shared-save" class="primary" type="button">打开</button>
+            <button id="save-as-shared" type="button" disabled>当前另存为</button>
+          </div>
+          <div class="button-row archive-manage-row">
+            <button id="rename-shared-save" type="button">重命名</button>
+            <button id="delete-shared-save" class="danger" type="button">删除</button>
+          </div>
+          <div class="button-row">
+            <button id="export-workspace" type="button" disabled>导出完整 JSON</button>
+            <button id="import-workspace" type="button">导入 JSON / ZIP</button>
+            <button id="batch-export-zip" type="button" disabled>批量导出 ZIP</button>
+          </div>
+          <input id="workspace-import-file" class="visually-hidden" type="file" accept=".json,.zip,application/json,application/zip">
+          <p id="shared-save-status" class="muted cache-status">正在打开手机本地书库…</p>
+          <p class="muted compact-note">导入 TXT 会自动新建本机存档；章节、上下文和结果只保存在此 App。卸载或清除 App 数据前，请先用“批量导出 ZIP”或逐本导出完整 JSON 备份；ZIP 导入会为包内每本书各建一个新存档。</p>
+        </div>
+      </details>
+
+      <details class="card">
+        <summary><span class="step">2</span> 导入小说 / 新建存档</summary>
+        <div class="card-body">
+          <label class="file-button" for="novel-file">选择 TXT 小说</label>
+          <input id="novel-file" class="visually-hidden" type="file" accept=".txt,text/plain">
+          <label for="encoding">文件编码</label>
+          <select id="encoding">
+            <option value="auto">自动检测（推荐）</option><option value="utf-8">UTF-8</option>
+            <option value="gb18030">GB18030 / GBK</option><option value="big5">Big5</option>
+            <option value="utf-16le">UTF-16 LE</option><option value="utf-16be">UTF-16 BE</option>
+            <option value="utf-32le">UTF-32 LE</option><option value="utf-32be">UTF-32 BE</option>
+            <option value="shift_jis">Shift-JIS</option><option value="euc-jp">EUC-JP</option>
+            <option value="euc-kr">EUC-KR</option><option value="windows-1252">Windows-1252</option>
+          </select>
+          <p id="file-meta" class="muted">尚未导入文件</p>
+          <p class="muted compact-note">选择 TXT 后会按文件名创建新的本机存档，不会覆盖当前书。</p>
+          <div class="field-row">
+            <div><label for="batch-size">每批章节</label><select id="batch-size"><option>5</option><option selected>10</option><option>20</option><option>50</option></select></div>
+            <div><label for="batch">当前批次</label><select id="batch" disabled><option>请先导入</option></select></div>
+          </div>
+          <label for="chapter">当前章节</label>
+          <select id="chapter" disabled><option>请先导入 TXT</option></select>
+          <div class="button-row four">
+            <button id="prev-batch" disabled type="button">上批</button><button id="prev-chapter" disabled type="button">上章</button>
+            <button id="next-chapter" disabled type="button">下章</button><button id="next-batch" disabled type="button">下批</button>
+          </div>
+        </div>
+      </details>
+
+      <details class="card batch-card">
+        <summary><span class="step">3</span> 连续批量处理</summary>
+        <div class="card-body">
+          <div class="field-row">
+            <div><label for="batch-start-chapter">起始章节</label><input id="batch-start-chapter" type="number" min="1" step="1" value="1" disabled></div>
+            <div><label for="batch-end-chapter">结束章节</label><input id="batch-end-chapter" type="number" min="1" step="1" value="1" disabled></div>
+          </div>
+          <button id="batch-use-current" type="button" disabled>设为当前章到末章</button>
+          <label class="check"><input id="batch-send-first" type="checkbox" checked> 开始前发送一次首楼</label>
+          <label class="check"><input id="batch-prelude-compression-enabled" type="checkbox" checked> 中途起章时，自动压缩并携带前置原文</label>
+          <p class="muted compact-note">使用“每 N 章总结 / 保留最近 K 章”的参数；首次处理中途章节时自动开启完整滚动总结。</p>
+          <label for="batch-existing-policy">已有章节结果</label>
+          <select id="batch-existing-policy">
+            <option value="skip" selected>跳过已完成章节（断点续跑）</option>
+            <option value="overwrite">重新处理并覆盖</option>
+          </select>
+          <div class="button-row batch-actions">
+            <button id="batch-start" class="primary" type="button" disabled>开始批量</button>
+            <button id="batch-pause" type="button" disabled>暂停</button>
+            <button id="batch-stop" class="danger" type="button" disabled>停止</button>
+          </div>
+          <progress id="batch-progress" class="batch-progress" max="1" value="0" aria-describedby="batch-status"></progress>
+          <p id="batch-status" class="muted cache-status">导入或打开小说后可设置范围。</p>
+          <p class="muted compact-note">严格按“首楼（可选）→前置原文/总结（需要时）→章节顺序”逐个请求；每一步成功保存后才继续。起始章大于 1 时会补入此前章节背景。请保持 App 在前台，退到后台会在步骤边界暂停。</p>
+        </div>
+      </details>
+      </section>
+
+      <section class="panel-group settings-panel">
+      <details class="card">
+        <summary><span class="step">1</span> API 设置</summary>
+        <div class="card-body">
+          <label for="base-url">Base URL</label>
+          <input id="base-url" type="url" value="https://api.deepseek.com/v1" placeholder="https://api.example.com/v1">
+          <label for="api-key">API Key</label>
+          <div class="input-action">
+            <input id="api-key" type="password" autocomplete="off" placeholder="sk-...">
+            <button id="toggle-key" type="button">显示</button>
+          </div>
+          <label class="check"><input id="share-api-config" type="checkbox" checked> 在此手机保存 API Key、地址和模型</label>
+          <p id="shared-api-status" class="muted cache-status">正在读取此手机的 API 配置…</p>
+          <div class="field-row model-row">
+            <div>
+              <label for="model">模型</label>
+              <select id="model"><option value="">请先拉取模型</option></select>
+            </div>
+            <button id="fetch-models" type="button">拉取模型</button>
+          </div>
+          <details class="advanced">
+            <summary>可选请求参数（默认均不发送）</summary>
+            <div class="optional-grid">
+              <label class="check thinking-option"><input id="enable-thinking" type="checkbox"> 启用思考（发送 <code>enable_thinking: true</code>）</label>
+              <label class="optional"><input data-param="temperature" type="checkbox"><span>温度</span><input id="temperature" type="number" min="0" max="2" step="0.1" value="0.7" disabled></label>
+              <label class="optional"><input data-param="top_p" type="checkbox"><span>Top P</span><input id="top-p" type="number" min="0" max="1" step="0.05" value="1" disabled></label>
+              <label class="optional"><input data-param="max_tokens" type="checkbox"><span>最大 Token</span><input id="max-tokens" type="number" min="1" step="1" value="4096" disabled></label>
+              <label class="optional"><input data-param="frequency_penalty" type="checkbox"><span>频率惩罚</span><input id="frequency-penalty" type="number" min="-2" max="2" step="0.1" value="0" disabled></label>
+              <label class="optional"><input data-param="presence_penalty" type="checkbox"><span>存在惩罚</span><input id="presence-penalty" type="number" min="-2" max="2" step="0.1" value="0" disabled></label>
+            </div>
+
+            <details class="advanced-subsection">
+              <summary>自定义思考 / 推理参数</summary>
+              <div class="advanced-fields">
+                <label class="check"><input id="enable-reasoning-params" type="checkbox"> 启用自定义参数 JSON</label>
+                <label for="reasoning-params-json">请求体顶层字段</label>
+                <textarea id="reasoning-params-json" class="json-editor" rows="5" spellcheck="false" disabled>{
+  "reasoning_effort": "high"
+}</textarea>
+                <p class="muted compact-note">仅在启用时发送，按顶层浅合并。也可填写 <code>{"thinking":{"type":"enabled","budget_tokens":4096}}</code> 等服务商自定义格式。</p>
+              </div>
+            </details>
+
+            <details class="advanced-subsection">
+              <summary>生成可靠性</summary>
+              <div class="advanced-fields">
+                <label class="check"><input id="all-failure-retry-enabled" type="checkbox"> 模型请求失败时自动重试</label>
+                <label class="check"><input id="empty-content-retry-enabled" type="checkbox" checked> 只有思维链、没有正文时自动重试</label>
+                <label class="check"><input id="missing-title-retry-enabled" type="checkbox" checked> 缺少章节标题时自动重试</label>
+                <label class="check"><input id="short-content-retry-enabled" type="checkbox" checked> 正文过短或疑似截断时自动重试</label>
+                <label for="empty-content-retry-count">最多额外重试次数</label>
+                <input id="empty-content-retry-count" type="number" min="0" max="10" step="1" value="3" inputmode="numeric">
+                <div class="field-row">
+                  <div><label for="short-content-min-chars">最低正文字符数</label><input id="short-content-min-chars" type="number" min="0" max="100000" step="10" value="200" inputmode="numeric"></div>
+                  <div><label for="short-content-min-ratio">最低原文比例（%）</label><input id="short-content-min-ratio" type="number" min="0" max="100" step="1" value="15" inputmode="decimal"></div>
+                </div>
+                <p class="muted compact-note">前两个请求模式保持原有互斥；缺标题和正文过短是独立质量检查，可与任一请求模式同时开启。四类原因共用同一重试次数上限；用户停止、配置错误和保存失败不会重复请求。</p>
+              </div>
+            </details>
+
+            <details class="advanced-subsection expert-section">
+              <summary>请求覆盖（专家）</summary>
+              <div class="advanced-fields">
+                <label class="check warning-check"><input id="enable-request-override" type="checkbox"> 启用聊天请求覆盖</label>
+                <div id="request-override-fields">
+                  <div class="field-row request-route-row">
+                    <div>
+                      <label for="chat-request-path">聊天请求路径 / URL</label>
+                      <input id="chat-request-path" type="text" value="chat/completions" placeholder="chat/completions 或 https://..." disabled>
+                    </div>
+                    <div>
+                      <label for="chat-request-method">HTTP 方法</label>
+                      <select id="chat-request-method" disabled>
+                        <option selected>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option><option>GET</option>
+                      </select>
+                    </div>
+                  </div>
+                  <label for="request-headers-json">请求头增补 / 覆盖 JSON</label>
+                  <textarea id="request-headers-json" class="json-editor" rows="3" spellcheck="false" disabled>{}</textarea>
+                  <label for="request-body-json">请求体最终覆盖 JSON</label>
+                  <textarea id="request-body-json" class="json-editor" rows="5" spellcheck="false" disabled>{}</textarea>
+                </div>
+                <p class="muted compact-note">仅影响聊天请求，不影响“拉取模型”。路径相对 Base URL，也可填完整 HTTP(S) URL；请求体最后做顶层浅合并，可改写 <code>model</code>、<code>messages</code>、<code>stream</code>。启用覆盖后可在请求体中自定模型而不拉取模型；GET 不发送请求体。响应仍须兼容当前 OpenAI 格式。</p>
+                <p class="muted compact-note danger-note">当前 API Key 默认仍会作为 Bearer 头发送；可用 <code>{"Authorization":null}</code> 删除。高级配置保存在此 App；错误 URL 可能把内容发往非预期服务。</p>
+              </div>
+            </details>
+
+            <details class="advanced-subsection web-search-section">
+              <summary>DS联网搜索</summary>
+              <div class="advanced-fields">
+                <label class="check"><input id="web-search-enabled" type="checkbox" checked> 章节请求允许模型联网搜索（DeepSeek /responses）</label>
+                <p class="muted compact-note">开启后，章节类请求（处理章节、重 roll、批量、阅读模式）改走 <code>/responses</code> 接口并附带 <code>web_search</code> 工具，由 DeepSeek 在服务端执行搜索后直接给出正文；首楼、摘要请求不受影响。搜索会额外消耗 Token。端点不支持时自动退回普通请求并提示一次。仅对 DeepSeek 官方 API 生效，其他服务商（GLM/Kimi 等）不受此开关影响。</p>
+                <label for="web-search-prompt">联网搜索提示词（每本书独立，可留空）</label>
+                <textarea id="web-search-prompt" rows="4" placeholder="例如：改写涉及真实历史、地理或专业设定时，可联网核实；搜索结果只作参考，不得改变剧情走向。"></textarea>
+                <p class="muted compact-note">非空时注入到章节尾部处理要求之前，告诉模型什么情况该搜索、怎么用结果；随书籍存档和完整 JSON 一起保存。启用“请求覆盖（专家）”时联网搜索自动不生效。</p>
+              </div>
+            </details>
+          </details>
+          <div id="api-status" class="status">普通模式只会请求 Base URL；专家模式也可能请求你填写的完整聊天 URL。</div>
+          <details class="advanced-subsection prompt-preset-section">
+            <summary>自定义 Prompt 预设</summary>
+            <div class="advanced-fields">
+              <label for="prompt-preset-select">预设</label>
+              <select id="prompt-preset-select"><option value="">暂无预设</option></select>
+              <div class="button-row prompt-preset-actions">
+                <button id="apply-prompt-preset" type="button" disabled>应用</button>
+                <button id="new-prompt-preset" type="button">新建</button>
+                <button id="save-prompt-preset" type="button" disabled>覆盖保存</button>
+              </div>
+              <div class="button-row prompt-preset-actions">
+                <button id="rename-prompt-preset" type="button" disabled>重命名</button>
+                <button id="delete-prompt-preset" class="danger" type="button" disabled>删除</button>
+              </div>
+              <p id="prompt-preset-status" class="muted compact-note">保存系统提示词、首楼提示词、章节尾部要求和增量摘要提示词；不包含 API 配置和书籍进度。</p>
+            </div>
+          </details>
+        </div>
+      </details>
+
+      <details class="card appearance-card">
+        <summary><span class="step">2</span> 界面外观</summary>
+        <div class="card-body">
+          <label for="content-font-size">内容字体大小</label>
+          <div class="font-size-control">
+            <input id="content-font-size" type="range" min="10" max="32" step="1" value="14" aria-describedby="content-font-size-note">
+            <div class="font-size-number">
+              <input id="content-font-size-number" type="number" min="10" max="32" step="1" value="14" inputmode="numeric" aria-label="内容字体大小（像素）">
+              <span>px</span>
+            </div>
+            <button id="reset-content-font-size" type="button">恢复默认</button>
+          </div>
+          <p id="content-font-size-note" class="muted compact-note">调整提示词、章节请求、JSON 编辑区、模型回答和推理内容；默认 14px，只保存在此 App。</p>
+          <label for="custom-font-css">自定义字体 CSS</label>
+          <textarea id="custom-font-css" class="json-editor font-css-editor" rows="7" spellcheck="false">@import url("https://fontsapi.zeoseven.com/292/main/result.css");
+
+body {
+    font-family: "LXGW WenKai";
+    font-weight: normal;
+}</textarea>
+          <p class="muted compact-note">支持粘贴字体 <code>@import</code> 和 <code>body</code> 中的 <code>font-family</code> / <code>font-weight</code>。设置只保存在此 App。</p>
+          <div class="button-row">
+            <button id="apply-font-css" type="button">应用字体</button>
+            <button id="reset-font-css" type="button">恢复默认</button>
+          </div>
+        </div>
+      </details>
+
+      <details class="card">
+        <summary><span class="step">3</span> 首楼与上下文</summary>
+        <div class="card-body">
+          <label for="system-prompt">系统提示词（可留空）</label>
+          <textarea id="system-prompt" rows="3" placeholder="例如：你是一名专业的网络小说编辑。"></textarea>
+          <label for="first-prompt">首楼提示词</label>
+          <textarea id="first-prompt" rows="5">你是一名小说改写助手。接下来我会逐章发送小说内容，请按每章末尾的要求处理，并只输出处理后的正文。</textarea>
+          <div class="button-row">
+            <button id="send-first" class="primary" type="button">发送首楼</button>
+            <button id="clear-context" class="danger" type="button">清空上下文并删除首楼</button>
+          </div>
+          <label class="check"><input id="include-context" type="checkbox" checked> 携带连续上下文（首楼、增量摘要及近期历史）</label>
+          <label class="check"><input id="context-rewritten-only" type="checkbox"> 历史上下文仅使用改写成果，不携带旧章节原文</label>
+          <p class="muted compact-note">开启后，当前章仍发送完整请求；已改写章节在后续上下文中只发送标题和最新正文。它不影响下方独立的“中途起章前置原文”设置。</p>
+          <div id="context-status" class="status">连续上下文：0 轮</div>
+        </div>
+      </details>
+
+      <details id="context-summary-card" class="card context-summary-card">
+        <summary><span class="step">4</span> 上下文总结</summary>
+        <div class="card-body context-summary-settings">
+          <label class="check"><input id="context-summary-enabled" type="checkbox"> 启用增量摘要</label>
+          <label class="check"><input id="context-prelude-compression-enabled" type="checkbox" checked> 中途起章时，自动压缩并携带前置原文</label>
+          <p class="muted compact-note">首次处理中途章节时，较早原文按摘要间隔分块，最近章节保留完整原文；并自动启用后续滚动总结。该设置与批量区域同步。</p>
+          <div class="field-row">
+            <div><label for="context-summary-interval">每多少章生成摘要</label><input id="context-summary-interval" type="number" min="1" max="200" step="1" value="40"></div>
+            <div><label for="context-summary-retain">总结后保留最近章节</label><input id="context-summary-retain" type="number" min="0" max="39" step="1" value="10"></div>
+          </div>
+          <label>总结内容来源</label>
+          <div class="summary-source-options">
+            <label class="check"><input id="context-summary-source-rewritten" name="context-summary-source" type="radio" value="rewrittenOnly" checked> 仅总结改写后的成果（默认）</label>
+            <label class="check"><input id="context-summary-source-request" name="context-summary-source" type="radio" value="requestAndRewrite"> 总结真实请求 + 改写结果</label>
+          </div>
+          <label for="context-summary-prompt">独立总结提示词</label>
+          <textarea id="context-summary-prompt" rows="10"></textarea>
+          <div class="button-row">
+            <button id="reset-context-summary-prompt" type="button">恢复默认提示词</button>
+            <button id="rebuild-context-summaries" type="button" disabled>按当前方式重建摘要</button>
+          </div>
+          <p id="context-summary-status" class="muted cache-status">增量摘要未启用。</p>
+          <p class="muted compact-note">保留章数需小于总结间隔。前置原文摘要、首个混合摘要和后续改写摘要均只追加、不自动合并；摘要只影响模型上下文，不删除原文、改写结果、推理或导出内容。</p>
+          <div id="context-summary-blocks" class="summary-block-list"><p class="muted summary-empty">尚无摘要块。</p></div>
+        </div>
+      </details>
+
+      <details class="card">
+        <summary><span class="step">5</span> 章节模板</summary>
+        <div class="card-body">
+          <label for="title-repeat">标题重复次数</label><input id="title-repeat" type="number" min="0" max="10" value="3">
+          <label for="tail-prompt">尾部处理要求</label><textarea id="tail-prompt" rows="4">把这一章改成xxx。对话提示语风格别改，保持原有叙事节奏、人物口吻和网文风格。</textarea>
+          <label for="end-mark">结束标记</label><input id="end-mark" type="text" value="(本章完)">
+          <div class="field-row thirds">
+            <div><label for="nav-prev">上一章</label><input id="nav-prev" type="text" value="上一章"></div>
+            <div><label for="nav-book">书籍页</label><input id="nav-book" type="text" value="书籍页"></div>
+            <div><label for="nav-next">下一章</label><input id="nav-next" type="text" value="下一章"></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="card tts-card">
+        <summary><span class="step">6</span> 语音朗读（MiMo TTS）</summary>
+        <div class="card-body">
+          <label class="check"><input id="tts-enabled" type="checkbox"> 启用语音朗读</label>
+          <label class="check"><input id="tts-live-enabled" type="checkbox"> 生成时同步朗读（边生成边读）</label>
+          <div class="field-row">
+            <div><label for="tts-live-first-chars">首段起读字数</label><input id="tts-live-first-chars" type="number" min="100" max="1200" step="50" value="100" inputmode="numeric"></div>
+            <div><label for="tts-live-next-chars">后续段落字数</label><input id="tts-live-next-chars" type="number" min="100" max="1200" step="50" value="200" inputmode="numeric"></div>
+          </div>
+          <p class="muted compact-note">开启后，章节生成过程中攒够一段完整句子（默认首段约 100 字、后续段约 200 字，可调）就开始合成朗读，后续段落生成好自动接着读，不用等整章完成。单段上限固定 1200 字。朗读中点「停止朗读」只是暂停，按钮变为「继续朗读」可从暂停处接着播；生成重试或失败时才会整体停止并随新尝试重新开始。仍需上方总开关和 MiMo Key。</p>
+          <label for="tts-api-key">MiMo API Key</label>
+          <input id="tts-api-key" type="password" autocomplete="off" placeholder="sk-..." spellcheck="false">
+          <label for="tts-base-url">TTS API 地址</label>
+          <input id="tts-base-url" type="text" value="https://api.xiaomimimo.com" spellcheck="false">
+          <label for="tts-model">模型</label>
+          <input id="tts-model" type="text" list="tts-model-options" value="mimo-v2.5-tts" spellcheck="false">
+          <datalist id="tts-model-options">
+            <option value="mimo-v2.5-tts"></option>
+            <option value="mimo-v2.5-tts-voicedesign"></option>
+            <option value="mimo-v2.5-tts-voiceclone"></option>
+          </datalist>
+          <label for="tts-voice">音色</label>
+          <select id="tts-voice">
+            <option value="mimo_default">MiMo 默认</option>
+            <option value="冰糖">冰糖（中文女声）</option>
+            <option value="茉莉">茉莉（中文女声）</option>
+            <option value="苏打">苏打（中文男声）</option>
+            <option value="白桦">白桦（中文男声）</option>
+            <option value="Mia">Mia（英文女声）</option>
+            <option value="Chloe">Chloe（英文女声）</option>
+            <option value="Milo">Milo（英文男声）</option>
+            <option value="Dean">Dean（英文男声）</option>
+          </select>
+          <label for="tts-voice-custom">自定义音色（填写后优先于上方选项）</label>
+          <input id="tts-voice-custom" type="text" placeholder="留空使用上方选择的音色" spellcheck="false">
+          <label for="tts-instruction">朗读语气指令（可选，不读入语音）</label>
+          <input id="tts-instruction" type="text" placeholder="例如：平稳叙事语气，语速适中" spellcheck="false">
+          <p class="muted compact-note">只朗读 AI 输出的章节结果；长文自动分段逐段合成、顺序播放。MiMo Key 只保存在此 App 本机配置，不进入书籍存档、完整 JSON 或 TXT。锁屏或切到后台时不保证继续播放。</p>
+        </div>
+      </details>
+      </section>
+    </aside>
+
+    <section class="workspace">
+      <section class="panel preview-panel">
+        <div class="panel-header">
+          <div><h2>请求内容</h2><span id="chapter-position" class="badge">未导入</span></div>
+          <div class="button-row compact"><button id="regenerate" disabled type="button">重新生成</button><button id="copy-prompt" disabled type="button">复制</button></div>
+        </div>
+        <div class="chapter-jump-row" aria-label="章节跳转与回滚">
+          <label for="chapter-jump-number">章节</label>
+          <input id="chapter-jump-number" type="number" min="1" step="1" value="1" inputmode="numeric" disabled>
+          <button id="jump-to-chapter" type="button" disabled>跳转</button>
+          <button id="rollback-from-chapter" class="danger" type="button" disabled>从该章重新开始</button>
+        </div>
+        <p class="muted compact-note chapter-jump-note">跳转不会删除数据；“从该章重新开始”会在确认后删除该章及之后的改写结果、上下文和受影响摘要。</p>
+        <textarea id="chapter-preview" class="editor" placeholder="导入 TXT 后自动生成当前章节内容，也可以在发送前手动修改。"></textarea>
+        <div class="actionbar">
+          <label class="check"><input id="auto-advance" type="checkbox" checked> 成功后自动下一章</label>
+          <div class="chapter-actions">
+            <button id="preview-prev-chapter" disabled type="button">上一章</button>
+            <button id="reroll-chapter" disabled type="button">重 roll</button>
+            <button id="send-chapter" class="primary large" disabled type="button">处理当前章</button>
+            <button id="preview-next-chapter" disabled type="button">下一章</button>
+          </div>
+        </div>
+      </section>
+
+      <div id="output-resize-handle" class="resize-handle" role="separator" aria-label="拖动调整 AI 输出区域高度" aria-orientation="horizontal" title="上下拖动调整 AI 输出高度，双击恢复默认"></div>
+
+      <section class="panel output-panel">
+        <div class="panel-header">
+          <div><h2>AI 输出</h2><span id="request-state" class="badge neutral">等待请求</span></div>
+          <div class="output-actions">
+            <label class="check auto-scroll-check"><input id="auto-scroll" type="checkbox"> 自动滚动</label>
+            <div class="button-row compact"><button id="prev-result" disabled type="button">上一条</button><button id="next-result" disabled type="button">下一条</button><button id="stop" class="danger" disabled type="button">停止</button><button id="copy-output" disabled type="button">复制结果</button><button id="tts-read" disabled type="button">朗读</button><button id="reading-mode" disabled type="button">阅读模式</button><button id="preview-all-results" disabled type="button">全部预览</button><button id="export-results" disabled type="button">导出 TXT</button><button id="clear-output" type="button">清空显示</button></div>
+          </div>
+        </div>
+        <div class="response-content">
+          <details id="reasoning-box" class="reasoning-box" hidden>
+            <summary>思考过程 <span id="reasoning-size" class="muted"></span></summary>
+            <pre id="reasoning-output" class="reasoning-output" tabindex="0"></pre>
+          </details>
+          <section class="answer-box">
+            <h3>最终回答</h3>
+            <pre id="output" class="output" tabindex="0">输出将在这里显示。</pre>
+          </section>
+        </div>
+        <div class="result-footer"><span id="result-position">暂无生成结果</span><span id="usage" class="usage"></span></div>
+        <div class="output-bottom-actions" aria-label="章节快捷操作">
+          <button id="bottom-reroll-chapter" type="button" disabled>重 roll 当前章节</button>
+          <button id="bottom-process-next" class="primary" type="button" disabled>处理下一章节</button>
+          <button id="bottom-back-to-input" type="button">返回 AI 输入区</button>
+        </div>
+        <details class="export-cleanup-options">
+          <summary>TXT 导出清理</summary>
+          <div class="export-cleanup-body">
+            <label class="check"><input id="export-remove-duplicate-titles" type="checkbox" checked> 去除正文开头的重复章节标题</label>
+            <label class="check"><input id="export-strip-wrapper-tags" type="checkbox" checked> 移除模型包装标签（保留标签内正文）</label>
+            <label class="check"><input id="export-normalize-whitespace" type="checkbox" checked> 规范多余空行和行尾空格</label>
+            <label for="export-wrapper-tags">需要移除的标签名</label>
+            <input id="export-wrapper-tags" type="text" value="ds_safety, final, answer, response" placeholder="ds_safety, final, answer">
+            <p class="muted compact-note">仅影响 TXT 导出，不修改存档和模型原始回答；TXT 始终不导出思维链、Token、首楼或旧重 roll 版本。</p>
+          </div>
+        </details>
+      </section>
+    </section>
+  </main>
+
+  <nav class="mobile-nav" aria-label="手机功能导航">
+    <button id="mobile-nav-write" type="button" data-mobile-view-target="write" aria-current="page">写作</button>
+    <button id="mobile-nav-books" type="button" data-mobile-view-target="books">书籍</button>
+    <button id="mobile-nav-settings" type="button" data-mobile-view-target="settings">设置</button>
+  </nav>
+
+  <dialog id="all-results-dialog" class="results-dialog" aria-labelledby="all-results-title">
+    <div class="results-dialog-shell">
+      <header class="results-dialog-header">
+        <div><h2 id="all-results-title">全部改写章节</h2><p id="all-results-summary" class="muted">暂无结果</p></div>
+        <div class="button-row compact"><button id="prev-all-results-page" type="button" disabled>上一页</button><button id="next-all-results-page" type="button" disabled>下一页</button><button id="copy-all-results" type="button">复制全部</button><button id="export-all-results" type="button">导出 TXT</button><button id="close-all-results" type="button">关闭</button></div>
+      </header>
+      <pre id="all-results-content" class="all-results-content" tabindex="0"></pre>
+    </div>
+  </dialog>
+
+  <dialog id="reading-mode-dialog" class="reading-mode-dialog" aria-labelledby="reading-mode-title">
+    <div class="reading-mode-shell">
+      <header class="reading-mode-header">
+        <div><h2 id="reading-mode-title">阅读模式</h2><p id="reading-mode-status" class="muted">暂无章节结果</p></div>
+        <button id="reading-mode-close" type="button">退出阅读模式</button>
+      </header>
+      <div class="reading-mode-nav" aria-label="阅读章节导航">
+        <button id="reading-mode-prev-chapter" type="button">上一章</button>
+        <label for="reading-mode-jump-number">章节</label>
+        <input id="reading-mode-jump-number" type="number" min="1" step="1" value="1" inputmode="numeric">
+        <button id="reading-mode-jump" type="button">跳转</button>
+        <button id="reading-mode-next-chapter" type="button">下一章</button>
+      </div>
+      <article class="reading-mode-body"><pre id="reading-mode-content" tabindex="0">暂无章节结果。</pre></article>
+      <footer class="reading-mode-actions">
+        <button id="reading-mode-tts" type="button" disabled>朗读本章</button>
+        <button id="reading-mode-reroll" type="button" disabled>重 roll 当前章节</button>
+        <button id="reading-mode-process-next" class="primary" type="button" disabled>处理下一章节</button>
+      </footer>
+    </div>
+  </dialog>
+
+  <dialog id="batch-export-dialog" class="results-dialog" aria-labelledby="batch-export-title">
+    <div class="results-dialog-shell batch-export-shell">
+      <header class="results-dialog-header">
+        <div><h2 id="batch-export-title">批量导出存档 ZIP</h2><p id="batch-export-summary" class="muted">选择要打包的书籍存档；每本书一个完整 JSON，不含 API 配置和密钥。</p></div>
+        <div class="button-row compact"><button id="batch-export-cancel" type="button">取消</button><button id="batch-export-confirm" class="primary" type="button" disabled>导出 ZIP</button></div>
+      </header>
+      <label class="check batch-export-all"><input id="batch-export-select-all" type="checkbox" checked> 全选</label>
+      <div id="batch-export-list" class="batch-export-list"></div>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="mobile-bridge.js?v=1122"></script>
+  <script src="fflate.min.js?v=1122"></script>
+  <script src="app.js?v=1122"></script>
+</body>
+</html>
